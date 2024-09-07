@@ -1,0 +1,5 @@
+com\omeganessy\micro_collector\MicroCollectorApplication.class
+com\omeganessy\micro_collector\boundaries\MessageCollector.class
+com\omeganessy\micro_collector\config\RestTemplateConfiguration.class
+com\omeganessy\micro_collector\entity\Message.class
+com\omeganessy\micro_collector\repository\JpaMessageRepository.class

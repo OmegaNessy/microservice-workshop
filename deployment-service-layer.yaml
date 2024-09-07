@@ -1,0 +1,270 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+spec:
+  serviceName: rabbitmq-service
+  replicas: 1  # сколько подов требуется в стейтфулсете
+  template:
+    metadata:
+      labels:
+        # label нужен из тех же соображений, что и в деплойменте.
+        app: rabbitmq-app
+    spec:
+      containers:
+        - name: rabbitmq-container
+          image: rabbitmq:3.11-management-alpine
+
+          # Выставляем наружу дефолтный порт.
+          ports:
+            - containerPort: 5672
+              name: rabbitmq-cli
+
+  # selector нужен из тех же соображений, что и в деплойменте.
+  selector:
+    matchLabels:
+      app: rabbitmq-app
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-service
+spec:
+  # ClusterIP — самый простой тип сервиса, который
+  # позволяет подам связываться друг с другом в рамках
+  # кластера, но абсолютно никак не виден снаружи:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: rabbitmq-app
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-secret
+  labels:
+    app: postgres
+data:
+  POSTGRES_DB: messages_db
+  POSTGRES_USER: pass
+  POSTGRES_PASSWORD: pass
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: postgres-secret
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+  selector:
+    app: postgres
+
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-server-conf
+data:
+  prometheus.yml: |
+    scrape_configs:
+      - job_name: 'collector'
+        metrics_path: '/actuator/prometheus'
+        scrape_interval: 3s
+        dns_sd_configs:
+        - names:
+          - 'collector-headless-service.default.svc.cluster.local'
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus-server
+  template:
+    metadata:
+      labels:
+        app: prometheus-server
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus
+          ports:
+            - containerPort: 9090
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/prometheus
+      volumes:
+        - name: config-volume
+          configMap:
+            name: prometheus-server-conf
+            defaultMode: 420
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-service
+spec:
+  selector:
+    app: prometheus-server
+  ports:
+    - protocol: TCP
+      port: 9090
+  type: ClusterIP
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-server-conf
+data:
+  default.yml: |
+    apiVersion: 1
+    datasources:
+      - name: prometheus
+        type: prometheus
+        orgId: 1
+        access: proxy
+        typeName: Prometheus
+        basicAuth: false
+        isDefault: true
+        jsonData:
+          httpMethod: POST
+        readOnly: false
+        uid: adwvewd4gto8wc
+        url: http://prometheus-service.default.svc.cluster.local:9090
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana-server
+  template:
+    metadata:
+      labels:
+        app: grafana-server
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/grafana/provisioning/datasources
+      volumes:
+        - name: config-volume
+          configMap:
+            name: grafana-server-conf
+            defaultMode: 420
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-service
+spec:
+  selector:
+    app: grafana-server
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: LoadBalancer
+
+
+---
+
+apiVersion: "v1"
+kind: "Service"
+metadata:
+  annotations: {}
+  labels:
+    app: "collector"
+  name: "collector-headless-service"
+spec:
+  ports:
+    - name: "collector"
+      port: 8082
+  selector:
+    app: "collector"
+    env: green
+  clusterIP: None
+#---
+#
+#apiVersion: apps/v1
+#kind: StatefulSet
+#metadata:
+#  name: postgres
+#spec:
+#  serviceName: postgres-service
+#  replicas: 1  # сколько подов требуется в стейтфулсете
+#  template:
+#    metadata:
+#      labels:
+#        # label нужен из тех же соображений, что и в деплойменте.
+#        app: postgres-app
+#    spec:
+#      containers:
+#        - name: postgres-container
+#          image: postgres:latest
+#
+#          # Выставляем наружу дефолтный порт.
+#          ports:
+#            - containerPort: 5432
+#              name: postgres-cli
+#
+#  # selector нужен из тех же соображений, что и в деплойменте.
+#  selector:
+#    matchLabels:
+#      app: postgres-app

@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: micro-sender
+
+  rabbitmq:
+  #Default username ans pass
+    host: rabbitmq-0.rabbitmq-service.default.svc.cluster.local
+    port: 5672
+    username: guest
+    password: guest
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+#management.endpoints.web.exposure.include=prometheus

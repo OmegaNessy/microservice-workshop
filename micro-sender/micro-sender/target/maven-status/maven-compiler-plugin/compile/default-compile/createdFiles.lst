@@ -1,0 +1,5 @@
+com\omeganessy\micro_sender\controller\NotificationController.class
+com\omeganessy\micro_sender\metrics\CustomMetrics.class
+com\omeganessy\micro_sender\entity\NotificationRequest.class
+com\omeganessy\micro_sender\config\RabbitMQConfig.class
+com\omeganessy\micro_sender\MicroSenderApplication.class

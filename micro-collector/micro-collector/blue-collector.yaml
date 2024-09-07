@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blue-collector
+  labels:
+    app: collector
+    env: blue
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: collector
+      env: blue
+  template:
+    metadata:
+      labels:
+        app: collector
+        env: blue
+    spec:
+      containers:
+        - name: collector
+          image: omeganessy/collector:latest
+          ports:
+            - containerPort: 8082

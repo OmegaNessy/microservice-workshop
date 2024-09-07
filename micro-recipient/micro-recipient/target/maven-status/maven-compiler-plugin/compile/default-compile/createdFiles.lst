@@ -1,0 +1,3 @@
+com\omeganessy\micro_recipient\config\RabbitMQConfig.class
+com\omeganessy\micro_recipient\MicroRecipientApplication.class
+com\omeganessy\micro_recipient\controller\MessageController.class

@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: green-recipient
+  labels:
+    app: recipient
+    env: green
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: recipient
+      env: green
+  template:
+    metadata:
+      labels:
+        app: recipient
+        env: green
+    spec:
+      containers:
+        - name: recipient
+          image: omeganessy/recipient:version3
+          ports:
+            - containerPort: 8081
+
+
+

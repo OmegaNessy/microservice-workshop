@@ -1,0 +1,67 @@
+version: "3.8"
+
+networks:
+  sender:
+  recipient:
+
+services:
+  micro-sender:
+    build: ../../Desktop/micros/micro-sender/micro-sender
+    networks:
+      - sender
+    ports:
+      - "8080:8080"
+
+  micro-recipient:
+    build: ../../Desktop/micros/micro-recipient/micro-recipient
+    networks:
+      - recipient
+    ports:
+      - "8081:8081"
+
+  rabbitmq:
+    image: rabbitmq:3.11-management-alpine
+    networks:
+      - sender
+      - recipient
+
+  micro-collector:
+    build: ../../Desktop/micros/micro-collector/micro-collector
+    networks:
+      - recipient
+    ports:
+      - "8082:8082"
+
+  micro-visualizer:
+    build: ../../Desktop/micros/micro-visualizer
+    networks:
+      - sender
+      - recipient
+    ports:
+      - "8083:8083"
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./provisioning:/etc/grafana/provisioning
+
+  postgres:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_USER=pass
+      - POSTGRES_DB=messages_db
+    networks:
+      - sender
+      - recipient
